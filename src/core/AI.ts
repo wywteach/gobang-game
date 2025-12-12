@@ -66,25 +66,26 @@ export class AI {
   private getNormalMove(board: (Stone | null)[][], emptyPositions: Position[]): Position {
     const config = this.game.getConfig();
 
+    // 创建棋盘副本以安全地模拟落子
+    const boardCopy = this.createBoardCopy(board);
+
     // 首先检查是否能直接获胜
     for (const pos of emptyPositions) {
-      board[pos.row][pos.col] = this.aiStone;
-      if (this.checkWinAt(board, pos, this.aiStone, config.winCount)) {
-        board[pos.row][pos.col] = null;
+      boardCopy[pos.row][pos.col] = this.aiStone;
+      if (this.checkWinAt(boardCopy, pos, this.aiStone, config.winCount)) {
         return pos;
       }
-      board[pos.row][pos.col] = null;
+      boardCopy[pos.row][pos.col] = null;
     }
 
     // 然后检查是否需要阻止对手获胜
     const opponentStone = this.aiStone === 'black' ? 'white' : 'black';
     for (const pos of emptyPositions) {
-      board[pos.row][pos.col] = opponentStone;
-      if (this.checkWinAt(board, pos, opponentStone, config.winCount)) {
-        board[pos.row][pos.col] = null;
+      boardCopy[pos.row][pos.col] = opponentStone;
+      if (this.checkWinAt(boardCopy, pos, opponentStone, config.winCount)) {
         return pos;
       }
-      board[pos.row][pos.col] = null;
+      boardCopy[pos.row][pos.col] = null;
     }
 
     // 寻找最佳防守和进攻位置
@@ -250,12 +251,15 @@ export class AI {
     const winningMoves: Position[] = [];
     const config = this.game.getConfig();
 
+    // 创建棋盘副本以安全地模拟落子
+    const boardCopy = this.createBoardCopy(board);
+
     for (const pos of emptyPositions) {
-      board[pos.row][pos.col] = this.aiStone;
-      if (this.checkWinAt(board, pos, this.aiStone, config.winCount)) {
+      boardCopy[pos.row][pos.col] = this.aiStone;
+      if (this.checkWinAt(boardCopy, pos, this.aiStone, config.winCount)) {
         winningMoves.push(pos);
       }
-      board[pos.row][pos.col] = null;
+      boardCopy[pos.row][pos.col] = null;
     }
 
     return winningMoves;
@@ -269,14 +273,24 @@ export class AI {
     const config = this.game.getConfig();
     const opponentStone = this.aiStone === 'black' ? 'white' : 'black';
 
+    // 创建棋盘副本以安全地模拟落子
+    const boardCopy = this.createBoardCopy(board);
+
     for (const pos of emptyPositions) {
-      board[pos.row][pos.col] = opponentStone;
-      if (this.checkWinAt(board, pos, opponentStone, config.winCount)) {
+      boardCopy[pos.row][pos.col] = opponentStone;
+      if (this.checkWinAt(boardCopy, pos, opponentStone, config.winCount)) {
         blockingMoves.push(pos);
       }
-      board[pos.row][pos.col] = null;
+      boardCopy[pos.row][pos.col] = null;
     }
 
     return blockingMoves;
+  }
+
+  /**
+   * 创建棋盘副本
+   */
+  private createBoardCopy(board: (Stone | null)[][]): (Stone | null)[][] {
+    return board.map(row => [...row]);
   }
 }

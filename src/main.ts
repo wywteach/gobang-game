@@ -6,7 +6,8 @@ import {
   Position,
   GameMode,
   GameStatus,
-  GameConfig
+  GameConfig,
+  HistoryItem
 } from './types/game.js';
 
 /**
@@ -37,6 +38,11 @@ class GameController {
     whiteWins: number;
     draws: number;
   };
+
+  // 复盘模式
+  private isReviewMode: boolean = false;
+  private reviewHistory: HistoryItem[] = [];
+  private reviewIndex: number = 0;
 
   constructor() {
     // 初始化游戏配置
@@ -85,6 +91,9 @@ class GameController {
     // 绑定事件
     this.bindEvents();
 
+    // 绑定键盘快捷键
+    this.bindKeyboardEvents();
+
     // 更新UI
     this.updateUI();
     this.updateStatistics();
@@ -96,7 +105,12 @@ class GameController {
    */
   private createBoard(): void {
     const config = this.game.getConfig();
-    const boardElement = document.getElementById('board')!;
+    const boardElement = document.getElementById('board');
+
+    if (!boardElement) {
+      console.error('无法找到棋盘元素');
+      return;
+    }
 
     // 设置棋盘网格
     boardElement.innerHTML = '';
@@ -211,6 +225,42 @@ class GameController {
       this.toggleSound();
     });
 
+    // 头部按钮
+    document.getElementById('settings-btn')!.addEventListener('click', () => {
+      this.openModal('settings-modal');
+    });
+
+    document.getElementById('theme-btn')!.addEventListener('click', () => {
+      this.openModal('theme-modal');
+    });
+
+    // 设置弹窗控制
+    document.getElementById('settings-close')!.addEventListener('click', () => {
+      this.closeModal('settings-modal');
+    });
+
+    document.getElementById('settings-save')!.addEventListener('click', () => {
+      this.saveSettings();
+    });
+
+    document.getElementById('settings-reset')!.addEventListener('click', () => {
+      this.resetSettings();
+    });
+
+    // 主题弹窗控制
+    document.getElementById('theme-close')!.addEventListener('click', () => {
+      this.closeModal('theme-modal');
+    });
+
+    // 主题选择
+    const themeCards = document.querySelectorAll('.theme-card');
+    themeCards.forEach((card: Element) => {
+      card.addEventListener('click', () => {
+        const theme = (card as HTMLElement).dataset.theme || 'default';
+        this.selectTheme(theme);
+      });
+    });
+
     // 游戏模式切换
     const modeButtons = document.querySelectorAll('.mode-btn');
     modeButtons.forEach((btn: Element) => {
@@ -228,6 +278,10 @@ class GameController {
     document.getElementById('modal-new-game')!.addEventListener('click', () => {
       this.closeModal('game-modal');
       this.resetGame();
+    });
+
+    document.getElementById('modal-review')!.addEventListener('click', () => {
+      this.startReview();
     });
   }
 
@@ -656,9 +710,270 @@ class GameController {
   private applyTheme(theme: string): void {
     document.body.setAttribute('data-theme', theme);
   }
+
+  /**
+   * 保存设置
+   */
+  private saveSettings(): void {
+    // 获取设置值
+    const boardSize = parseInt((document.getElementById('board-size') as HTMLSelectElement).value);
+    const winCount = parseInt((document.getElementById('win-count') as HTMLSelectElement).value);
+    const aiDifficulty = (document.getElementById('ai-difficulty') as HTMLSelectElement).value as 'easy' | 'normal' | 'hard';
+    const timeLimit = parseInt((document.getElementById('time-limit') as HTMLSelectElement).value);
+
+    // 更新本地设置
+    this.settings.showCoordinates = (document.getElementById('show-coordinates') as HTMLInputElement).checked;
+    this.settings.showLastMove = (document.getElementById('show-last-move') as HTMLInputElement).checked;
+    this.settings.enableAnimations = (document.getElementById('enable-animations') as HTMLInputElement).checked;
+
+    // 应用新配置并重新开始游戏
+    const newConfig = {
+      boardSize,
+      winCount,
+      gameMode: this.game.getConfig().gameMode,
+      difficulty: aiDifficulty,
+      timeLimit
+    };
+
+    this.resetGame(newConfig.gameMode);
+    this.closeModal('settings-modal');
+
+    // 重新创建棋盘
+    this.createBoard();
+  }
+
+  /**
+   * 重置设置
+   */
+  private resetSettings(): void {
+    // 恢复默认值
+    (document.getElementById('board-size') as HTMLSelectElement).value = '15';
+    (document.getElementById('win-count') as HTMLSelectElement).value = '5';
+    (document.getElementById('ai-difficulty') as HTMLSelectElement).value = 'normal';
+    (document.getElementById('time-limit') as HTMLSelectElement).value = '0';
+    (document.getElementById('show-coordinates') as HTMLInputElement).checked = true;
+    (document.getElementById('show-last-move') as HTMLInputElement).checked = true;
+    (document.getElementById('enable-animations') as HTMLInputElement).checked = true;
+  }
+
+  /**
+   * 选择主题
+   */
+  private selectTheme(theme: string): void {
+    // 更新主题卡片状态
+    const themeCards = document.querySelectorAll('.theme-card');
+    themeCards.forEach((card: Element) => {
+      (card as HTMLElement).classList.toggle('active', (card as HTMLElement).dataset.theme === theme);
+    });
+
+    // 应用主题
+    this.settings.currentTheme = theme;
+    this.applyTheme(theme);
+    this.closeModal('theme-modal');
+  }
+
+  /**
+   * 开始复盘
+   */
+  private startReview(): void {
+    const history = this.game.getHistory();
+    if (history.length === 0) {
+      alert('没有可复盘的内容');
+      return;
+    }
+
+    // 保存当前游戏状态
+    this.reviewHistory = [...history];
+    this.reviewIndex = 0;
+    this.isReviewMode = true;
+
+    // 关闭游戏结束弹窗
+    this.closeModal('game-modal');
+
+    // 重置棋盘显示
+    const board = this.game.getBoard();
+    for (let row = 0; row < board.length; row++) {
+      for (let col = 0; col < board[row].length; col++) {
+        board[row][col] = null;
+      }
+    }
+
+    // 更新棋盘显示
+    this.updateBoard();
+    this.updateUI();
+
+    // 显示复盘控制提示
+    this.showReviewControls();
+  }
+
+  /**
+   * 显示复盘控制
+   */
+  private showReviewControls(): void {
+    const statusText = document.getElementById('game-status-text')!;
+    statusText.innerHTML = `
+      <div class="review-controls">
+        <span>复盘模式 - 步骤 ${this.reviewIndex}/${this.reviewHistory.length}</span>
+        <div class="review-buttons">
+          <button onclick="gameController.prevStep()" class="review-btn">
+            <i class="fas fa-step-backward"></i> 上一步
+          </button>
+          <button onclick="gameController.nextStep()" class="review-btn">
+            <i class="fas fa-step-forward"></i> 下一步
+          </button>
+          <button onclick="gameController.exitReview()" class="review-btn">
+            <i class="fas fa-times"></i> 退出复盘
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * 上一步
+   */
+  private prevStep(): void {
+    if (this.reviewIndex > 0) {
+      this.reviewIndex--;
+      this.replayToStep();
+    }
+  }
+
+  /**
+   * 下一步
+   */
+  private nextStep(): void {
+    if (this.reviewIndex < this.reviewHistory.length) {
+      this.reviewIndex++;
+      this.replayToStep();
+    }
+  }
+
+  /**
+   * 重放到指定步骤
+   */
+  private replayToStep(): void {
+    // 清空棋盘
+    const board = this.game.getBoard();
+    for (let row = 0; row < board.length; row++) {
+      for (let col = 0; col < board[row].length; col++) {
+        board[row][col] = null;
+      }
+    }
+
+    // 重新放置棋子到当前步骤
+    for (let i = 0; i < this.reviewIndex; i++) {
+      const item = this.reviewHistory[i];
+      board[item.position.row][item.position.col] = item.stone;
+    }
+
+    // 更新最后一步标记
+    if (this.reviewIndex > 0) {
+      const lastItem = this.reviewHistory[this.reviewIndex - 1];
+      this.game['lastMove'] = lastItem.position;
+    } else {
+      this.game['lastMove'] = null;
+    }
+
+    // 更新显示
+    this.updateBoard();
+    this.showReviewControls();
+  }
+
+  /**
+   * 退出复盘
+   */
+  private exitReview(): void {
+    this.isReviewMode = false;
+    this.reviewHistory = [];
+    this.reviewIndex = 0;
+
+    // 恢复游戏状态
+    const history = this.game.getHistory();
+    const board = this.game.getBoard();
+
+    // 清空棋盘
+    for (let row = 0; row < board.length; row++) {
+      for (let col = 0; col < board[row].length; col++) {
+        board[row][col] = null;
+      }
+    }
+
+    // 恢复所有棋子
+    history.forEach(item => {
+      board[item.position.row][item.position.col] = item.stone;
+    });
+
+    // 更新显示
+    this.updateBoard();
+    this.updateUI();
+  }
+
+  /**
+   * 绑定键盘快捷键
+   */
+  private bindKeyboardEvents(): void {
+    document.addEventListener('keydown', (e) => {
+      // 防止在输入框中触发快捷键
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // 复盘模式的快捷键
+      if (this.isReviewMode) {
+        switch (e.key.toLowerCase()) {
+          case 'arrowleft':
+            e.preventDefault();
+            this.prevStep();
+            break;
+          case 'arrowright':
+            e.preventDefault();
+            this.nextStep();
+            break;
+          case 'escape':
+            e.preventDefault();
+            this.exitReview();
+            break;
+        }
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case 'z':
+          if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            this.undoMove();
+          }
+          break;
+        case 'n':
+          e.preventDefault();
+          this.resetGame();
+          break;
+        case 'p':
+          e.preventDefault();
+          this.togglePause();
+          break;
+        case 's':
+          e.preventDefault();
+          this.toggleSound();
+          break;
+        case 'escape':
+          e.preventDefault();
+          // 关闭所有弹窗
+          this.closeModal('game-modal');
+          this.closeModal('settings-modal');
+          this.closeModal('theme-modal');
+          break;
+      }
+    });
+  }
 }
+
+// 创建全局实例以供复盘按钮使用
+export let gameController: GameController;
 
 // 当DOM加载完成后启动游戏
 document.addEventListener('DOMContentLoaded', () => {
-  new GameController();
+  gameController = new GameController();
 });
