@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏 - 酷炫版</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 游戏标题 -->
+        <header class="header">
+            <h1><i class="fas fa-chess"></i> 五子棋游戏</h1>
+            <div class="header-buttons">
+                <button class="header-btn" id="settings-btn">
+                    <i class="fas fa-cog"></i> 设置
+                </button>
+                <button class="header-btn" id="theme-btn">
+                    <i class="fas fa-palette"></i> 主题
+                </button>
+            </div>
+        </header>
+
+        <!-- 游戏主区域 -->
+        <div class="game-main">
+            <!-- 左侧信息栏 -->
+            <aside class="sidebar left-sidebar">
+                <!-- 玩家信息 -->
+                <div class="player-info black-player">
+                    <div class="player-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="player-details">
+                        <h3 id="black-player-name">黑棋玩家</h3>
+                        <div class="player-stats">
+                            <span class="stat">
+                                <i class="fas fa-clock"></i>
+                                <span id="black-time">00:00</span>
+                            </span>
+                            <span class="stat">
+                                <i class="fas fa-hand-pointer"></i>
+                                <span id="black-moves">0</span> 步
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stone-indicator black" id="black-indicator"></div>
+                </div>
+
+                <div class="vs-divider">VS</div>
+
+                <div class="player-info white-player">
+                    <div class="player-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="player-details">
+                        <h3 id="white-player-name">白棋玩家</h3>
+                        <div class="player-stats">
+                            <span class="stat">
+                                <i class="fas fa-clock"></i>
+                                <span id="white-time">00:00</span>
+                            </span>
+                            <span class="stat">
+                                <i class="fas fa-hand-pointer"></i>
+                                <span id="white-moves">0</span> 步
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stone-indicator white" id="white-indicator"></div>
+                </div>
+
+                <!-- 游戏控制 -->
+                <div class="game-controls">
+                    <button class="control-btn primary" id="new-game-btn">
+                        <i class="fas fa-play"></i> 新游戏
+                    </button>
+                    <button class="control-btn secondary" id="undo-btn">
+                        <i class="fas fa-undo"></i> 悔棋
+                    </button>
+                    <button class="control-btn secondary" id="pause-btn">
+                        <i class="fas fa-pause"></i> 暂停
+                    </button>
+                    <button class="control-btn secondary" id="sound-btn">
+                        <i class="fas fa-volume-up"></i>
+                    </button>
+                </div>
+
+                <!-- 游戏模式 -->
+                <div class="game-mode">
+                    <h3>游戏模式</h3>
+                    <div class="mode-buttons">
+                        <button class="mode-btn active" data-mode="pvp">
+                            <i class="fas fa-users"></i> 双人对战
+                        </button>
+                        <button class="mode-btn" data-mode="pve">
+                            <i class="fas fa-user-ninja"></i> 人机对战
+                        </button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- 中间棋盘区域 -->
+            <main class="board-area">
+                <div class="board-container">
+                    <div class="board-wrapper">
+                        <div class="board" id="board"></div>
+                        <div class="board-coordinates">
+                            <div class="coord-top"></div>
+                            <div class="coord-left"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 游戏状态栏 -->
+                <div class="status-bar">
+                    <div class="status-text">
+                        <i class="fas fa-info-circle"></i>
+                        <span id="game-status-text">黑棋先行</span>
+                    </div>
+                    <div class="game-timer">
+                        <i class="fas fa-hourglass-half"></i>
+                        <span id="game-timer-text">00:00</span>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 右侧信息栏 -->
+            <aside class="sidebar right-sidebar">
+                <!-- 历史记录 -->
+                <div class="history-panel">
+                    <h3>
+                        <i class="fas fa-history"></i> 落子记录
+                    </h3>
+                    <div class="history-list" id="history-list">
+                        <p class="empty-history">暂无落子记录</p>
+                    </div>
+                </div>
+
+                <!-- 游戏统计 -->
+                <div class="stats-panel">
+                    <h3>
+                        <i class="fas fa-chart-bar"></i> 游戏统计
+                    </h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-value" id="total-games">0</span>
+                            <span class="stat-label">总局数</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="black-wins">0</span>
+                            <span class="stat-label">黑棋胜</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="white-wins">0</span>
+                            <span class="stat-label">白棋胜</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-value" id="draws">0</span>
+                            <span class="stat-label">平局</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快捷键提示 -->
+                <div class="shortcuts-panel">
+                    <h3>
+                        <i class="fas fa-keyboard"></i> 快捷键
+                    </h3>
+                    <ul class="shortcuts-list">
+                        <li><kbd>Z</kbd> 悔棋</li>
+                        <li><kbd>N</kbd> 新游戏</li>
+                        <li><kbd>P</kbd> 暂停/继续</li>
+                        <li><kbd>S</kbd> 音效开关</li>
+                    </ul>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- 游戏结果弹窗 -->
+    <div class="modal" id="game-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">
+                    <i class="fas fa-trophy"></i> 游戏结束
+                </h2>
+                <button class="close-btn" id="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="winner-announcement" id="winner-announcement">
+                    <div class="winner-icon"></div>
+                    <p id="modal-message">游戏结果</p>
+                </div>
+                <div class="game-summary" id="game-summary">
+                    <!-- 游戏统计信息 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="modal-review">
+                    <i class="fas fa-eye"></i> 复盘
+                </button>
+                <button class="modal-btn primary" id="modal-new-game">
+                    <i class="fas fa-redo"></i> 再来一局
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-cog"></i> 游戏设置
+                </h2>
+                <button class="close-btn" id="settings-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>棋盘设置</h3>
+                    <div class="setting-item">
+                        <label for="board-size">棋盘大小</label>
+                        <select id="board-size">
+                            <option value="9">9×9</option>
+                            <option value="13">13×13</option>
+                            <option value="15" selected>15×15</option>
+                            <option value="19">19×19</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="win-count">获胜条件</label>
+                        <select id="win-count">
+                            <option value="3">三子棋</option>
+                            <option value="4">四子棋</option>
+                            <option value="5" selected>五子棋</option>
+                            <option value="6">六子棋</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>人机对战</h3>
+                    <div class="setting-item">
+                        <label for="ai-difficulty">AI难度</label>
+                        <select id="ai-difficulty">
+                            <option value="easy">简单</option>
+                            <option value="normal" selected>普通</option>
+                            <option value="hard">困难</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <label for="first-player">先手选择</label>
+                        <select id="first-player">
+                            <option value="black" selected>黑棋先手</option>
+                            <option value="white">白棋先手</option>
+                            <option value="random">随机</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>时间设置</h3>
+                    <div class="setting-item">
+                        <label for="time-limit">时间限制</label>
+                        <select id="time-limit">
+                            <option value="0" selected>无限制</option>
+                            <option value="300000">5分钟</option>
+                            <option value="600000">10分钟</option>
+                            <option value="1800000">30分钟</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section">
+                    <h3>其他设置</h3>
+                    <div class="setting-item">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="show-coordinates" checked>
+                            <span class="checkmark"></span>
+                            显示坐标
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="show-last-move" checked>
+                            <span class="checkmark"></span>
+                            显示最后落子
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enable-animations" checked>
+                            <span class="checkmark"></span>
+                            启用动画
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn secondary" id="settings-reset">
+                    <i class="fas fa-undo"></i> 恢复默认
+                </button>
+                <button class="modal-btn primary" id="settings-save">
+                    <i class="fas fa-save"></i> 保存设置
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主题选择弹窗 -->
+    <div class="modal" id="theme-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>
+                    <i class="fas fa-palette"></i> 选择主题
+                </h2>
+                <button class="close-btn" id="theme-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="theme-grid">
+                    <div class="theme-card active" data-theme="default">
+                        <div class="theme-preview default-theme"></div>
+                        <span>经典主题</span>
+                    </div>
+                    <div class="theme-card" data-theme="dark">
+                        <div class="theme-preview dark-theme"></div>
+                        <span>暗夜主题</span>
+                    </div>
+                    <div class="theme-card" data-theme="forest">
+                        <div class="theme-preview forest-theme"></div>
+                        <span>森林主题</span>
+                    </div>
+                    <div class="theme-card" data-theme="ocean">
+                        <div class="theme-preview ocean-theme"></div>
+                        <span>海洋主题</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入游戏脚本 -->
+    <script type="module" src="./main.js"></script>
+</body>
+</html>

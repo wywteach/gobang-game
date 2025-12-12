@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>五子棋游戏</title>
+    <style>
+        /* 简化版样式 */
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+        }
+
+        .board-container {
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            background: #deb887;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 0;
+            background: #deb887;
+            position: relative;
+        }
+
+        .cell {
+            border: 1px solid #8b7355;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .cell:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .cell.review-current {
+            background: rgba(255, 215, 0, 0.3);
+        }
+
+        .stone {
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .stone.black {
+            background: radial-gradient(circle at 30% 30%, #4a4a4a, #000);
+        }
+
+        .stone.white {
+            background: radial-gradient(circle at 30% 30%, #fff, #e0e0e0);
+            border: 1px solid #ccc;
+        }
+
+        .stone.winning {
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 10px 3px rgba(255, 215, 0, 0.8);
+        }
+
+        .stone.review-last {
+            border: 2px solid red;
+            animation: pulse-red 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        @keyframes pulse-red {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                border: 2px solid red;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.1);
+                border: 3px solid red;
+            }
+        }
+
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 0 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.active {
+            background: #ff9800;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .modal p {
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .review-controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .review-controls button {
+            margin: 0 5px;
+            padding: 8px 16px;
+        }
+
+        .review-info {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .history {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            margin: 5px 0;
+            background: white;
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .history-item:hover {
+            background: #e0e0e0;
+            transform: translateX(5px);
+        }
+
+        .history-item.current {
+            background: #ffd700;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .history-stone {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .history-number {
+            width: 20px;
+            height: 20px;
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .board {
+                grid-template-columns: repeat(15, 24px);
+                grid-template-rows: repeat(15, 24px);
+            }
+
+            .stone {
+                width: 20px;
+                height: 20px;
+            }
+
+            button {
+                font-size: 14px;
+                padding: 8px 16px;
+                margin: 2px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>五子棋游戏</h1>
+
+        <div class="game-info">
+            <div>
+                <span>当前玩家：<span id="current-player">黑棋</span></span>
+                <span>步数：<span id="moves">0</span></span>
+            </div>
+            <div>
+                <span>模式：</span>
+                <select id="gameMode">
+                    <option value="pvp">双人对战</option>
+                    <option value="pve">人机对战</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="board-container">
+            <div class="board" id="board"></div>
+        </div>
+
+        <div class="controls">
+            <button id="newGameBtn">新游戏</button>
+            <button id="undoBtn" disabled>悔棋</button>
+            <button id="reviewBtn" disabled>复盘</button>
+        </div>
+
+        <div class="history" id="history">
+            <h3>落子记录</h3>
+        </div>
+    </div>
+
+    <!-- 游戏结束弹窗 -->
+    <div class="modal" id="gameModal">
+        <div class="modal-content">
+            <h2 id="modalTitle">游戏结束</h2>
+            <p id="modalMessage"></p>
+            <button onclick="closeModal()">确定</button>
+        </div>
+    </div>
+
+    <!-- 复盘弹窗 -->
+    <div class="modal" id="reviewModal">
+        <div class="modal-content">
+            <h2 id="reviewTitle">游戏复盘</h2>
+            <div class="review-info">
+                <p id="reviewStatus">第 <span id="reviewMove">1</span> / <span id="totalMoves">0</span> 步</p>
+                <p id="reviewPlayer">当前：<span id="reviewCurrentPlayer">-</span></p>
+            </div>
+            <div class="review-controls">
+                <button id="firstMoveBtn" onclick="goToFirstMove()">第一步</button>
+                <button id="prevMoveBtn" onclick="goToPreviousMove()">上一步</button>
+                <button id="nextMoveBtn" onclick="goToNextMove()">下一步</button>
+                <button id="lastMoveBtn" onclick="goToLastMove()">最后一步</button>
+            </div>
+            <button onclick="exitReview()">退出复盘</button>
+        </div>
+    </div>
+
+    <script>
+        // 简化版五子棋游戏
+        class SimpleGobang {
+            constructor() {
+                this.board = [];
+                this.currentPlayer = 'black';
+                this.gameOver = false;
+                this.history = [];
+                this.historyIndex = -1; // 当前复盘位置
+                this.aiMode = false;
+                this.isReviewing = false;
+                this.init();
+            }
+
+            init() {
+                this.createBoard();
+                this.bindEvents();
+                this.updateDisplay();
+            }
+
+            createBoard() {
+                const boardEl = document.getElementById('board');
+                boardEl.innerHTML = '';
+
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        cell.addEventListener('click', () => this.handleCellClick(row, col));
+                        boardEl.appendChild(cell);
+                    }
+                }
+            }
+
+            bindEvents() {
+                document.getElementById('newGameBtn').addEventListener('click', () => this.reset());
+                document.getElementById('undoBtn').addEventListener('click', () => this.undo());
+                document.getElementById('reviewBtn').addEventListener('click', () => this.enterReview());
+                document.getElementById('gameMode').addEventListener('change', (e) => {
+                    this.aiMode = e.target.value === 'pve';
+                    this.reset();
+                });
+            }
+
+            handleCellClick(row, col) {
+                // 复盘模式下不允许点击
+                if (this.isReviewing) return;
+
+                if (this.gameOver || this.board[row][col]) return;
+
+                this.placeStone(row, col);
+
+                if (!this.gameOver && this.aiMode && this.currentPlayer === 'white') {
+                    setTimeout(() => this.makeAIMove(), 500);
+                }
+            }
+
+            placeStone(row, col) {
+                // 如果不是复盘模式，添加到历史记录
+                if (!this.isReviewing) {
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                }
+
+                this.board[row][col] = this.currentPlayer;
+                this.history[this.historyIndex] = {
+                    row,
+                    col,
+                    player: this.currentPlayer,
+                    moveNumber: this.historyIndex + 1
+                };
+
+                if (this.checkWin(row, col)) {
+                    this.gameOver = true;
+                    this.showGameResult();
+                } else if (this.checkDraw()) {
+                    this.gameOver = true;
+                    this.showGameResult();
+                } else {
+                    this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black';
+                }
+
+                this.updateBoard();
+                this.updateDisplay();
+                this.updateHistory();
+            }
+
+            makeAIMove() {
+                const emptyCells = [];
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        if (!this.board[row][col]) {
+                            emptyCells.push({row, col});
+                        }
+                    }
+                }
+
+                if (emptyCells.length > 0) {
+                    // 简单AI：随机选择
+                    const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+                    // 优先获胜或阻止
+                    const bestMove = this.findBestMove();
+                    if (bestMove) {
+                        this.placeStone(bestMove.row, bestMove.col);
+                    } else {
+                        this.placeStone(move.row, move.col);
+                    }
+                }
+            }
+
+            findBestMove() {
+                // 简单的AI策略
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        if (!this.board[row][col]) {
+                            // 检查AI是否能赢
+                            this.board[row][col] = 'white';
+                            if (this.checkWin(row, col)) {
+                                this.board[row][col] = null;
+                                return {row, col};
+                            }
+                            this.board[row][col] = null;
+
+                            // 检查是否需要阻止玩家
+                            this.board[row][col] = 'black';
+                            if (this.checkWin(row, col)) {
+                                this.board[row][col] = null;
+                                return {row, col};
+                            }
+                            this.board[row][col] = null;
+                        }
+                    }
+                }
+                return null;
+            }
+
+            checkWin(row, col) {
+                const player = this.board[row][col];
+                const directions = [
+                    [[0, 1], [0, -1]],  // 水平
+                    [[1, 0], [-1, 0]],  // 垂直
+                    [[1, 1], [-1, -1]], // 主对角线
+                    [[1, -1], [-1, 1]]  // 副对角线
+                ];
+
+                for (const direction of directions) {
+                    let count = 1;
+
+                    for (const [dr, dc] of direction) {
+                        let r = row + dr;
+                        let c = col + dc;
+
+                        while (r >= 0 && r < 15 && c >= 0 && c < 15 && this.board[r][c] === player) {
+                            count++;
+                            r += dr;
+                            c += dc;
+                        }
+                    }
+
+                    if (count >= 5) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            checkDraw() {
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        if (!this.board[row][col]) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            updateBoard() {
+                const cells = document.querySelectorAll('.cell');
+
+                cells.forEach(cell => {
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    const stone = this.board[row][col];
+
+                    // 清除所有状态类
+                    cell.classList.remove('review-current');
+                    const existingStone = cell.querySelector('.stone');
+                    if (existingStone) {
+                        existingStone.remove();
+                    }
+
+                    // 添加棋子
+                    if (stone) {
+                        const stoneEl = document.createElement('div');
+                        stoneEl.className = `stone ${stone}`;
+
+                        // 检查是否是获胜棋子
+                        if (this.checkWin(row, col)) {
+                            stoneEl.classList.add('winning');
+                        }
+
+                        // 复盘模式下标记当前步
+                        if (this.isReviewing) {
+                            const historyItem = this.history[this.historyIndex];
+                            if (historyItem && historyItem.row === row && historyItem.col === col) {
+                                cell.classList.add('review-current');
+                                stoneEl.classList.add('review-last');
+                            }
+                        }
+
+                        cell.appendChild(stoneEl);
+                    }
+                });
+            }
+
+            updateDisplay() {
+                document.getElementById('currentPlayer').textContent =
+                    this.currentPlayer === 'black' ? '黑棋' : '白棋';
+                document.getElementById('moves').textContent = this.historyIndex + 1;
+                document.getElementById('undoBtn').disabled = this.historyIndex < 0 || this.gameOver || this.isReviewing;
+                document.getElementById('reviewBtn').disabled = this.history.length === 0 || this.isReviewing;
+
+                // 更新按钮状态
+                if (this.isReviewing) {
+                    document.getElementById('newGameBtn').disabled = true;
+                    document.getElementById('undoBtn').disabled = false;
+                    document.getElementById('reviewBtn').classList.add('active');
+                } else {
+                    document.getElementById('newGameBtn').disabled = false;
+                    document.getElementById('undoBtn').disabled = this.history.length === 0 || this.gameOver;
+                    document.getElementById('reviewBtn').classList.remove('active');
+                }
+            }
+
+            updateHistory() {
+                const historyEl = document.getElementById('history');
+                const start = Math.max(0, this.historyIndex - 9);
+                const end = Math.min(this.history.length - 1, this.historyIndex + 10);
+                const displayHistory = this.history.slice(start, end + 1);
+
+                let html = '<h3>落子记录';
+                displayHistory.forEach((item, index) => {
+                    const isActive = this.isReviewing && item === this.history[this.historyIndex];
+                    const colLetter = String.fromCharCode(65 + item.col);
+                    const rowNum = 15 - item.row;
+                    html += `
+                        <div class="history-item ${isActive ? 'current' : ''}"
+                             onclick="if (${!this.isReviewing}) return; ${this.isReviewing ?
+                                `game.goToMove(${start + index})` : ''}">
+                            <div class="history-number">${item.moveNumber}</div>
+                            <div class="history-stone ${item.player}"></div>
+                            <span>${colLetter}${rowNum}</span>
+                        </div>
+                    `;
+                });
+
+                historyEl.innerHTML = html || '<h3>落子记录</h3><p>暂无落子记录</p>';
+            }
+
+            showGameResult() {
+                const modal = document.getElementById('gameModal');
+                const title = document.getElementById('modalTitle');
+                const message = document.getElementById('modalMessage');
+
+                let winner = '';
+                let result = '';
+
+                if (this.currentPlayer === 'black') {
+                    winner = this.aiMode ? '恭喜你' : '黑棋';
+                    result = '获胜！';
+                } else if (this.currentPlayer === 'white') {
+                    winner = this.aiMode ? '电脑' : '白棋';
+                    result = '获胜！';
+                } else {
+                    result = '平局！';
+                }
+
+                title.textContent = '游戏结束';
+                message.textContent = winner ? `${winner}${result}` : '游戏平局';
+
+                modal.classList.add('show');
+                this.updateHistory();
+            }
+
+            // 复盘功能
+            enterReview() {
+                if (this.history.length === 0) return;
+
+                this.isReviewing = true;
+                this.historyIndex = this.history.length - 1;
+                this.gameOver = false;
+
+                // 重建棋盘到最后一步
+                this.board = Array(15).fill(null).map(() => Array(15).fill(null));
+                for (let i = 0; i <= this.historyIndex; i++) {
+                    const move = this.history[i];
+                    this.board[move.row][move.col] = move.player;
+                }
+
+                // 查找获胜位置并标记
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        if (this.board[row][col]) {
+                            if (this.checkWinFromPosition(row, col, this.board[row][col])) {
+                                // 标记所有获胜棋子
+                                for (let r = 0; r < 15; r++) {
+                                    for (let c = 0; c < 15; c++) {
+                                        if (this.board[r][c] === this.board[row][col]) {
+                                            const cell = this.getCellElement(r, c);
+                                            const stone = cell.querySelector('.stone');
+                                            if (stone) {
+                                                stone.classList.add('winning');
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                this.updateBoard();
+                this.updateDisplay();
+                this.updateHistory();
+                this.showReviewModal();
+            }
+
+            checkWinFromPosition(row, col, player) {
+                // 检查指定位置的棋子是否形成五子连珠
+                const directions = [
+                    [[0, 1], [0, -1]],  // 水平
+                    [[1, 0], [-1, 0]],  // 垂直
+                    [[1, 1], [-1, -1]], // 主对角线
+                    [[1, -1], [-1, 1]]  // 副对角线
+                ];
+
+                for (const direction of directions) {
+                    let count = 1;
+
+                    for (const [dr, dc] of direction) {
+                        let r = row + dr;
+                        let c = col + dc;
+
+                        while (r >= 0 && r < 15 && c >= 0 && c < 15 && this.board[r][c] === player) {
+                            count++;
+                            r += dr;
+                            c += dc;
+                        }
+                    }
+
+                    if (count >= 5) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            getCellElement(row, col) {
+                return document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            }
+
+            showReviewModal() {
+                const modal = document.getElementById('reviewModal');
+                const statusEl = document.getElementById('reviewStatus');
+                const playerEl = document.getElementById('reviewCurrentPlayer');
+
+                statusEl.innerHTML = `第 <span id="reviewMove">${this.historyIndex + 1}</span> / <span id="totalMoves">${this.history.length}</span> 步`;
+                playerEl.textContent = `当前：<span id="reviewCurrentPlayer">${this.history[this.historyIndex].player === 'black' ? '黑棋' : '白棋'}</span>`;
+
+                // 更新复盘控制按钮
+                document.getElementById('firstMoveBtn').disabled = this.historyIndex <= 0;
+                document.getElementById('prevMoveBtn').disabled = this.historyIndex <= 0;
+                document.getElementById('nextMoveBtn').disabled = this.historyIndex >= this.history.length - 1;
+                document.getElementById('lastMoveBtn').disabled = this.historyIndex >= this.history.length - 1;
+
+                modal.classList.add('show');
+            }
+
+            // 复盘控制函数
+            goToFirstMove() {
+                this.historyIndex = 0;
+                this.rebuildBoardFromHistory();
+                this.updateBoard();
+                this.updateDisplay();
+                this.updateHistory();
+                this.showReviewModal();
+            }
+
+            goToPreviousMove() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.rebuildBoardFromHistory();
+                    this.updateBoard();
+                    this.updateDisplay();
+                    this.updateHistory();
+                    this.showReviewModal();
+                }
+            }
+
+            goToNextMove() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.rebuildBoardFromHistory();
+                    this.updateBoard();
+                    this.updateDisplay();
+                    this.updateHistory();
+                    this.showReviewModal();
+                }
+            }
+
+            goToLastMove() {
+                this.historyIndex = this.history.length - 1;
+                this.rebuildBoardFromHistory();
+                this.updateBoard();
+                this.updateDisplay();
+                this.updateHistory();
+                this.showReviewModal();
+            }
+
+            goToMove(index) {
+                if (index < 0 || index >= this.history.length) return;
+
+                this.historyIndex = index;
+                this.rebuildBoardFromHistory();
+                this.updateBoard();
+                this.updateDisplay();
+                this.updateHistory();
+                this.showReviewModal();
+            }
+
+            rebuildBoardFromHistory() {
+                // 清空棋盘
+                this.board = Array(15).fill(null).map(() => Array(15).fill(null));
+
+                // 重建到当前位置
+                for (let i = 0; i <= this.historyIndex; i++) {
+                    const move = this.history[i];
+                    this.board[move.row][move.col] = move.player;
+                }
+            }
+
+            exitReview() {
+                this.isReviewing = false;
+                this.gameOver = this.history.length > 0 &&
+                    (this.checkWin(this.history[this.history.length - 1].row,
+                         this.history[this.history.length - 1].col) ||
+                     this.checkDraw());
+
+                // 更新按钮状态
+                document.getElementById('newGameBtn').disabled = false;
+                document.getElementById('reviewBtn').classList.remove('active');
+
+                // 关闭复盘弹窗
+                document.getElementById('reviewModal').classList.remove('show');
+
+                this.updateDisplay();
+            }
+
+            reset() {
+                this.board = Array(15).fill(null).map(() => Array(15).fill(null));
+                this.currentPlayer = 'black';
+                this.gameOver = false;
+                this.history = [];
+                this.historyIndex = -1;
+                this.isReviewing = false;
+
+                if (this.aiMode && Math.random() < 0.5) {
+                    // AI先手
+                    this.currentPlayer = 'white';
+                    setTimeout(() => this.makeAIMove(), 500);
+                }
+
+                this.updateBoard();
+                this.updateDisplay();
+                this.updateHistory();
+
+                // 关闭所有弹窗
+                document.getElementById('gameModal').classList.remove('show');
+                document.getElementById('reviewModal').classList.remove('show');
+
+                // 更新按钮状态
+                document.getElementById('newGameBtn').disabled = false;
+                document.getElementById('reviewBtn').classList.remove('active');
+            }
+
+            undo() {
+                if (this.isReviewing) {
+                    // 复盘模式下的撤销
+                    this.goToPreviousMove();
+                    return;
+                }
+
+                if (this.history.length === 0 || this.gameOver) return;
+
+                // 普通模式下的悔棋
+                this.history.pop();
+                this.historyIndex = this.history.length - 1;
+
+                // 重建棋盘
+                this.board = Array(15).fill(null).map(() => Array(15).fill(null));
+                for (let i = 0; i < this.history.length; i++) {
+                    const move = this.history[i];
+                    this.board[move.row][move.col] = move.player;
+                }
+
+                this.currentPlayer = this.history.length % 2 === 0 ? 'black' : 'white';
+                this.gameOver = false;
+
+                this.updateBoard();
+                this.updateDisplay();
+                this.updateHistory();
+
+                // 检查是否产生新的获胜
+                if (this.history.length > 0) {
+                    const lastMove = this.history[this.history.length - 1];
+                    if (this.checkWin(lastMove.row, lastMove.col)) {
+                        this.gameOver = true;
+                        this.showGameResult();
+                    }
+                }
+            }
+
+            closeModals() {
+                document.getElementById('gameModal').classList.remove('show');
+                document.getElementById('reviewModal').classList.remove('show');
+            }
+        }
+
+        // 关闭弹窗函数
+        function closeModal() {
+            document.getElementById('gameModal').classList.remove('show');
+            document.getElementById('reviewModal').classList.remove('show');
+        }
+
+        // 创建全局游戏实例
+        const game = new SimpleGobang();
+
+        // 添加全局函数供HTML调用
+        window.goToFirstMove = () => game.goToFirstMove();
+        window.goToPreviousMove = () => game.goToPreviousMove();
+        window.goToNextMove = () => game.goToNextMove();
+        window.goToLastMove = () => game.goToLastMove();
+        window.exitReview = () => game.exitReview();
+    </script>
+</body>
+</html>

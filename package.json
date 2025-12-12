@@ -1,0 +1,25 @@
+{
+  "name": "gobang-game",
+  "version": "1.0.0",
+  "description": "一个使用 TypeScript 开发的五子棋小游戏",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsc --watch",
+    "serve": "python3 -m http.server 8080"
+  },
+  "keywords": [
+    "五子棋",
+    "gobang",
+    "game",
+    "typescript",
+    "frontend"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
